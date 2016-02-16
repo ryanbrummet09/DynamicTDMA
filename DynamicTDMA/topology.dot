@@ -1,0 +1,15 @@
+digraph topology {
+	concentrate=true
+	A->B;
+	B->A;
+	B->C;
+	C->B;
+	C->D;
+	D->C;
+	E->C;
+	C->E;
+	E->F;
+	F->E;
+	E->G;
+	G->E;
+}
