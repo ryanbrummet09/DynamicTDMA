@@ -14,7 +14,8 @@ public class DeadlineMonotonic implements Comparator<PeriodicFlow> {
     }
 
     /**
-     *  compares and gives periodic flows with shorter deadlines higher priority
+     *  Compares and gives periodic flows with shorter deadlines higher priority.
+     *  If deadlines are equal, priority is given to the flow with the longer path
      *  @param flow1
      *  @param flow2
      *  @return
@@ -23,7 +24,11 @@ public class DeadlineMonotonic implements Comparator<PeriodicFlow> {
     public int compare(PeriodicFlow flow1, PeriodicFlow flow2) {
         int deadline1 = flow1.getDeadline();
         int deadline2 = flow2.getDeadline();
-        return Integer.compare(deadline1, deadline2);
+        if(deadline1 == deadline2) {
+        	return Integer.compare(flow1.getPath().size(),flow2.getPath().size());
+        } else {
+        	return Integer.compare(deadline1, deadline2);
+        }
     }
 
     public static DeadlineMonotonic comparator() {

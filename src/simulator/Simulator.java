@@ -72,9 +72,14 @@ public class Simulator {
 
             boolean success = inflight.size() == 1;
             if(inflight.size() == 0) {
-            	runStats.setsuccessfulTransmission((int) time, 1);
-            } else {
+            	// channel idle
             	runStats.setsuccessfulTransmission((int) time, 0);
+            } else if(inflight.size() == 1) {
+            	// packet transmitted
+            	runStats.setsuccessfulTransmission((int) time, 2);
+            } else {
+            	// contention
+            	runStats.setsuccessfulTransmission((int) time, 1);
             }
             while(inflight.size() > 0) {
                 Packet packet = inflight.remove(0);

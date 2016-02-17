@@ -16,4 +16,13 @@ public class SaturationFlow extends Flow {
     public SaturationFlow(Vertex source, Vertex destination, int timeSlotsNeededToSendPacket) {
         super(source, destination,timeSlotsNeededToSendPacket);
     }
+    
+    /**
+     * prints information about this flow to stdout in the form ("%d [%s]", id, printPath())
+     * @return
+     */
+    @Override
+    public String toString() {
+        return String.format("SaturationFlow: %d [%s]", id, printPath());
+    }
 }

@@ -111,4 +111,19 @@ public abstract class Flow {
     public int getTimeSlotsNeededToSendPacket() {
     	return timeSlotsNeededToSendPacket;
     }
+    
+    /**
+     * returns the path packets of this flow follow
+     * @return
+     */
+    public List<Vertex> getPath() {
+    	return path;
+    }
+    
+    /**
+     * Classes that extend flow must define their own toString methods
+     * @return
+     */
+    @Override
+    public abstract String toString();
 }

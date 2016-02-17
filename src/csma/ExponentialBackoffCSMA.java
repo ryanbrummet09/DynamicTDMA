@@ -30,6 +30,7 @@ public class ExponentialBackoffCSMA extends Node{
         super(vertex, simulator,seed);
         this.minContentionWindow = minContentionWindow;
         this.maxContentionWindow = maxContentionWindow;
+        cw = minContentionWindow;
     }
 	
 	/**

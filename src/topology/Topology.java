@@ -170,4 +170,18 @@ public class Topology {
         }
         return shortestPaths.getPath(source, destination);
     }
+    
+    /**
+     * returns a list of vertices in this topology with one neighbor vertex
+     * @return
+     */
+    public List<Vertex> getVerticesWithOneNeighbor() {
+    	List<Vertex> verticesWithOneNeighbor = new ArrayList<Vertex>();
+    	for(Vertex v : vertices) {
+    		if(v.getOutgoing().size() == 1) {
+    			verticesWithOneNeighbor.add(v);
+    		}
+    	}
+    	return verticesWithOneNeighbor;
+    }
 }

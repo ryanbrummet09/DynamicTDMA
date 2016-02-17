@@ -58,6 +58,6 @@ public class PeriodicFlow extends Flow {
      */
     @Override
     public String toString() {
-        return String.format("%d phi=%d period=%d deadline=%d prio=%d [%s]", id, phase, period, deadline, priority, printPath());
+        return String.format("PeriodicFlow: %d phi=%d period=%d deadline=%d prio=%d [%s]", id, phase, period, deadline, priority, printPath());
     }
 }

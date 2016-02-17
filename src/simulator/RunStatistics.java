@@ -31,7 +31,7 @@ public class RunStatistics {
     }
     
     /**
-     * for the given timeslot, sets whether a transmission occurred or is ongoing (int is used instead of boolean to allow for different kinds of success/failures)
+     * for the given timeslot, sets whether a transmission occurred or is ongoing (int is used instead of boolean to allow for different kinds of success: 0 is idle, 1 is contention, 2 is transmission,)
      * @param slot
      * @param success
      */
@@ -64,5 +64,47 @@ public class RunStatistics {
     		bw.write(successfulTransmissions[slot] + " ");
     	}
     	bw.close();
+    }
+    
+    /**
+     * returns the percentage of time during which there is no contention for the channel and no packets are being transmitted
+     * @return
+     */
+    public double getChannelIdlePercent() {
+    	double percent = 0;
+    	for(int i = 0; i < successfulTransmissions.length; i++ ) {
+    		if(successfulTransmissions[i] == 0) {
+    			percent++;
+    		}
+    	}
+    	return percent / successfulTransmissions.length;
+    }
+    
+    /**
+     * returns the percentage of time during which there is contention on the channel
+     * @return
+     */
+    public double getChannelContentionPercent() {
+    	double percent = 0;
+    	for(int i = 0; i < successfulTransmissions.length; i++ ) {
+    		if(successfulTransmissions[i] == 1) {
+    			percent++;
+    		}
+    	}
+    	return percent / successfulTransmissions.length;
+    }
+    
+    /**
+     * returns the percentage of time during which the channel is used to actually send packets
+     * @return
+     */
+    public double getChannelRealUsagePercent() {
+    	double percent = 0;
+    	for(int i = 0; i < successfulTransmissions.length; i++ ) {
+    		if(successfulTransmissions[i] == 2) {
+    			percent++;
+    		}
+    	}
+    	return percent / successfulTransmissions.length;
     }
 }
