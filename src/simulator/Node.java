@@ -2,8 +2,6 @@ package simulator;
 
 import topology.Vertex;
 import workload.Flow;
-import workload.PeriodicFlow;
-import workload.SaturationFlow;
 import workload.Workload;
 
 import java.util.*;
@@ -40,7 +38,7 @@ public abstract class Node {
     protected final Random random;
 
     protected int backoff = -1;
-    protected int cw = 128;
+    protected int cw;
     protected int state = INACTIVE;
 
 
@@ -127,17 +125,11 @@ public abstract class Node {
     }
 
     /**
-     * does nothing if queue is empty otherwise waits a random amount of time (based on cw) before transmitting next packet
+     * specifies behavior of node when told to send next packet in queue: must check that the queue is non empty, in correct state WHEN CALLED, assign contention state, and assign backoff value
      * @param time
      * @throws IllegalStateException
      */
-    protected void sendNext(long time) {
-        if (queue.size() == 0) return;
-        if (state != INACTIVE) throw new IllegalStateException("The state should be inactive");
-
-        state = CONTENDING;
-        backoff = random.nextInt(cw);
-    }
+    protected abstract void sendNext(long time);
 
     /**
      * returns the NodeStatistics object associated with this node
@@ -157,7 +149,7 @@ public abstract class Node {
     }
 
     /**
-     * returns the state of this node (Condtending, inactive, etc)
+     * returns the state of this node (Contending, inactive, etc)
      * @return
      */
     public int getState() {

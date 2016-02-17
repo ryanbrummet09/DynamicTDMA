@@ -3,7 +3,6 @@ import simulator.RunStatistics;
 import simulator.Simulator;
 import topology.Vertex;
 import topology.Topology;
-import workload.Flow;
 import workload.Workload;
 
 import java.io.IOException;
@@ -42,7 +41,7 @@ public class PolicyGenerator {
         System.out.println(topology.graphViz());
         topology.graphViz("topology.dot");
 
-        Workload workload = new Workload();
+        Workload workload = new Workload(10);
         int baseRate = 300;
         workload.newPeriodicFlow(d, a, 0, baseRate, baseRate);
         workload.newPeriodicFlow(f, a, 0, baseRate * 2, baseRate * 2);
@@ -53,7 +52,7 @@ public class PolicyGenerator {
         System.out.println("\nCompleted");
 
 
-        Simulator sim = new Simulator(topology, workload, new SimpleCSMAFactory(), 1);
+        Simulator sim = new Simulator(topology, workload, new SimpleCSMAFactory(128), 1);
         RunStatistics stats = sim.run(200000);
         stats.saveContenders("contenders.txt");
 

@@ -17,7 +17,8 @@ public class Simulator {
     private final HashMap<Vertex, Node> vertex2nodes = new HashMap<>();
     private final List<Node> nodes = new ArrayList<>();
     private final Workload workload;
-    private final NodeFactory nodeFactory;
+    @SuppressWarnings("unused")
+	private final NodeFactory nodeFactory;
     
     /**
      * creates a new simulator 
@@ -70,6 +71,11 @@ public class Simulator {
 
 
             boolean success = inflight.size() == 1;
+            if(inflight.size() == 0) {
+            	runStats.setsuccessfulTransmission((int) time, 1);
+            } else {
+            	runStats.setsuccessfulTransmission((int) time, 0);
+            }
             while(inflight.size() > 0) {
                 Packet packet = inflight.remove(0);
                 packet.getSource().transmitResult(time, packet, success);

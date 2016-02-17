@@ -10,6 +10,7 @@ import java.io.IOException;
  */
 public class RunStatistics {
     protected final int contenders[];
+    private final int[] successfulTransmissions;
 
     /**
      * creates a new RunStatistics object
@@ -17,6 +18,7 @@ public class RunStatistics {
      */
     public RunStatistics(int numSlots) {
         contenders = new int[numSlots];
+        this.successfulTransmissions = new int[numSlots];
     }
 
     /**
@@ -26,6 +28,15 @@ public class RunStatistics {
      */
     public void setContenders(int slot, int count) {
         contenders[slot] = count;
+    }
+    
+    /**
+     * for the given timeslot, sets whether a transmission occurred or is ongoing (int is used instead of boolean to allow for different kinds of success/failures)
+     * @param slot
+     * @param success
+     */
+    public void setsuccessfulTransmission(int slot, int success) {
+    	successfulTransmissions[slot] = success;
     }
 
     /**
@@ -40,5 +51,18 @@ public class RunStatistics {
         }
 
         bw.close();
+    }
+    
+    /**
+     * saves success/failure information for each time slot from a full simulation run to file
+     * @param fn
+     * @throws IOException
+     */
+    public void saveSuccesses(String fn) throws IOException {
+    	BufferedWriter bw = new BufferedWriter(new FileWriter(fn));
+    	for (int slot = 0; slot < successfulTransmissions.length; slot++) {
+    		bw.write(successfulTransmissions[slot] + " ");
+    	}
+    	bw.close();
     }
 }

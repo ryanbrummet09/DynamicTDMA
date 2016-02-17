@@ -47,7 +47,7 @@ public class TestSaturation {
                 workload.newSaturationFlow(topology.getVertexById(i), dest);
             }
 
-            Simulator simulator = new Simulator(topology, workload, new SimpleCSMAFactory(), 1);
+            Simulator simulator = new Simulator(topology, workload, new SimpleCSMAFactory(128), 1);
             RunStatistics stats = simulator.run(10000);
             stats.saveContenders("contenders.txt");
 
