@@ -1,10 +1,10 @@
 package simulator;
 
-import topology.Vertex;
-import workload.Flow;
-import workload.Workload;
-
 import java.util.*;
+
+import topology.topologyFoundationCode.Vertex;
+import workload.workloadFoundationCode.Flow;
+import workload.workloadFoundationCode.Workload;
 
 /**
  * Created by ochipara on 2/11/16.

@@ -1,10 +1,10 @@
 package simulator;
 
-import workload.Flow;
-import workload.PeriodicFlow;
-
 import java.util.HashMap;
 import java.util.Map;
+
+import workload.workloadFoundationCode.Flow;
+import workload.workloadFoundationCode.PeriodicFlow;
 
 /**
  * Created by ochipara on 2/11/16.

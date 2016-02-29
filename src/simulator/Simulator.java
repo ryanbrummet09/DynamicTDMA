@@ -1,13 +1,13 @@
 package simulator;
 
-import topology.Topology;
-import topology.Vertex;
-import workload.Workload;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
+
+import topology.topologyFoundationCode.Topology;
+import topology.topologyFoundationCode.Vertex;
+import workload.workloadFoundationCode.Workload;
 
 /**
  * Created by ochipara on 2/8/16.

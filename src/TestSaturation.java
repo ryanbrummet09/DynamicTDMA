@@ -1,14 +1,15 @@
-import csma.SimpleCSMAFactory;
 import simulator.Node;
 import simulator.RunStatistics;
 import simulator.Simulator;
-import topology.Topology;
-import topology.Vertex;
-import workload.Workload;
+import topology.topologyFoundationCode.Topology;
+import topology.topologyFoundationCode.Vertex;
+import workload.workloadFoundationCode.Workload;
 
 import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
+
+import protocols.SimpleCSMAFactory;
 
 /**
  * Created by ochipara on 2/12/16.

@@ -12,6 +12,7 @@ public class RunStatistics {
     protected final int contenders[];
     private final int[] successfulTransmissions;
     private int numPacketsCreated;
+    private final int numOfSlotsUsed;
 
     /**
      * creates a new RunStatistics object
@@ -21,6 +22,7 @@ public class RunStatistics {
         contenders = new int[numSlots];
         this.successfulTransmissions = new int[numSlots];
         this.numPacketsCreated = 0;
+        this.numOfSlotsUsed = numSlots;
     }
 
     /**
@@ -42,6 +44,22 @@ public class RunStatistics {
     public void setsuccessfulTransmission(int slot, int success) {
     	successfulTransmissions[slot] = success;
     }
+    
+    /**
+     * returns an array giving the number of contenders in each slot of the simulation associated with this object
+     * @return
+     */
+    public int[] getContenders() {
+    	return contenders;
+    }
+    
+    /**
+     * returns an array giving the transmission results of every slot of the simulation associated with this object
+     * @return
+     */
+    public int[] getSuccessfulTransmissions() {
+    	return successfulTransmissions;
+    }
 
     /**
      * saves the the number of contenders for each time slot from a full simulation run to file
@@ -62,7 +80,7 @@ public class RunStatistics {
      * @param fn
      * @throws IOException
      */
-    public void saveSuccesses(String fn) throws IOException {
+    public void saveSuccessfulTransmissions(String fn) throws IOException {
     	BufferedWriter bw = new BufferedWriter(new FileWriter(fn));
     	for (int slot = 0; slot < successfulTransmissions.length; slot++) {
     		bw.write(successfulTransmissions[slot] + " ");
@@ -163,5 +181,13 @@ public class RunStatistics {
     		}
     	}
     	return percent / successfulTransmissions.length;
+    }
+    
+    /**
+     * returns the number of slots used to run the simulation associated with this RunStatistics object
+     * @return
+     */
+    public int numSlotsUsedInSimulation(){
+    	return numOfSlotsUsed;
     }
 }

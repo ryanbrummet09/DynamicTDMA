@@ -1,11 +1,12 @@
-import csma.SimpleCSMAFactory;
 import simulator.RunStatistics;
 import simulator.Simulator;
-import topology.Vertex;
-import topology.Topology;
-import workload.Workload;
+import topology.topologyFoundationCode.Topology;
+import topology.topologyFoundationCode.Vertex;
+import workload.workloadFoundationCode.Workload;
 
 import java.io.IOException;
+
+import protocols.SimpleCSMAFactory;
 
 /**
  * Created by ochipara on 2/8/16.
@@ -23,13 +24,13 @@ public class PolicyGenerator {
      */
     public static final void main(String[] args) throws IOException {
         Topology topology = new Topology();
-        Vertex a = topology.newVertex("A");
-        Vertex b = topology.newVertex("B");
-        Vertex c = topology.newVertex("C");
-        Vertex d = topology.newVertex("D");
-        Vertex e = topology.newVertex("E");
-        Vertex f = topology.newVertex("F");
-        Vertex g = topology.newVertex("G");
+        Vertex a = topology.newVertex("A",true);
+        Vertex b = topology.newVertex("B",false);
+        Vertex c = topology.newVertex("C",false);
+        Vertex d = topology.newVertex("D",false);
+        Vertex e = topology.newVertex("E",false);
+        Vertex f = topology.newVertex("F",false);
+        Vertex g = topology.newVertex("G",false);
 
         topology.biconnect(a, b);
         topology.biconnect(b, c);

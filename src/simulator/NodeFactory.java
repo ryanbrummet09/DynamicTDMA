@@ -1,6 +1,6 @@
 package simulator;
 
-import topology.Vertex;
+import topology.topologyFoundationCode.Vertex;
 
 /**
  * Created by ochipara on 2/13/16.
