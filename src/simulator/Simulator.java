@@ -3,10 +3,16 @@ package simulator;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.PriorityQueue;
 import java.util.Random;
 
+import constants.TableStatisticsIndexConstant;
+import constants.TransmissionChannelConstants;
+import simulator.statistics.RunStatistics;
+import simulator.statistics.TableStatistics;
 import topology.topologyFoundationCode.Topology;
 import topology.topologyFoundationCode.Vertex;
+import workload.workloadFoundationCode.PeriodicFlow;
 import workload.workloadFoundationCode.Workload;
 
 /**
@@ -44,7 +50,6 @@ public class Simulator {
         
         List<Vertex> vertices = topology.getVertices();
         for (Vertex vertex : vertices) {
-
             Node node = nodeFactory.newNode(vertex, this, seed);
             vertex2nodes.put(vertex, node);
             nodes.add(node);
@@ -101,23 +106,23 @@ public class Simulator {
             }
             if(inflight.size() == 0) {
             	// channel idle
-            	runStats.setsuccessfulTransmission((int) time, 0);
+            	runStats.setsuccessfulTransmission((int) time, TransmissionChannelConstants.IDLE);
             } else if(inflight.size() == 1) {
             	if(packetDrop) {
             		// packet dropped
-            		runStats.setsuccessfulTransmission((int) time, 3);
+            		runStats.setsuccessfulTransmission((int) time, TransmissionChannelConstants.PACKET_DROPPED);
             	} else {
             		if(success) {
             			// packet transmitted
-                    	runStats.setsuccessfulTransmission((int) time, 2);
+                    	runStats.setsuccessfulTransmission((int) time, TransmissionChannelConstants.TRANSMISSION);
             		} else {
             			// transmission failed due to random chance (treated as collision such that no ack was received)
-                    	runStats.setsuccessfulTransmission((int) time, 4);
+                    	runStats.setsuccessfulTransmission((int) time, TransmissionChannelConstants.FAILED);
             		}
             	}
             } else {
             	// contention
-            	runStats.setsuccessfulTransmission((int) time, 1);
+            	runStats.setsuccessfulTransmission((int) time, TransmissionChannelConstants.CONTENTION);
             }
             while(inflight.size() > 0) {
                 Packet packet = inflight.remove(0);
@@ -129,6 +134,91 @@ public class Simulator {
             }
         }
         return runStats;
+    }
+    
+    /**
+     * Run the simulator for a given number of slots
+     * @param numSlots
+     * @return
+     */
+    public TableStatistics runTableStats(int numSlots) {
+        List<Packet> inflight = new ArrayList<>();
+
+        TableStatistics stats = new TableStatistics();
+        
+        for (long time = 0; time < numSlots; time++) {
+            // check if the node has a packet to transmitResult
+            for (Node node : nodes) {
+                Packet packet = node.contend(time);
+                if (packet != null) {
+                	inflight.add(packet);
+                	if(!packet.getPacketHasBeenCounted()) {
+                		packet.countPacket();
+                	}
+                }
+            }
+
+            // notify nodes of the outcome
+            for (Node node : nodes) {
+                // let the nodes know if the channel is free or busy
+                node.channelFeedback(inflight.size() == 0);
+            }
+           
+
+            boolean success;
+            boolean packetDrop = false;
+            if(inflight.size() == 1) {
+            	if(inflight.get(0).getDestination().getNumPacketsInQueue() < inflight.get(0).getDestination().getMaxQueueSize()) {
+            		if(rand.nextDouble() * 100 < failureChance) {
+        				success = false; // packet transmission failed due to random failure chance (outside interference, etc)
+        			} else {
+        				success = true; // packet successfully transmitted
+        			}
+            	} else {
+            		success = true;  // dropped packet
+            		packetDrop = true;
+            	}
+            } else { 
+            	success = false; // collision or idle
+            }
+            if(inflight.size() == 0) {
+            	// channel idle
+            } else if(inflight.size() == 1) {
+            	if(packetDrop) {
+            		// packet dropped
+            		inflight.get(0).getSource().slotTransmissionResult = TransmissionChannelConstants.PACKET_DROPPED;
+            	} else {
+            		if(success) {
+            			// packet transmitted
+                    	inflight.get(0).getSource().slotTransmissionResult = TransmissionChannelConstants.TRANSMISSION;
+            		} else {
+            			// transmission failed due to random chance (treated as collision such that no ack was received)
+                    	inflight.get(0).getSource().slotTransmissionResult = TransmissionChannelConstants.FAILED;
+            		}
+            	}
+            } else {
+            	// contention
+            }
+            
+            
+            
+            List<Packet> packetsThatReceachedGateway = new ArrayList<Packet>();
+            while(inflight.size() > 0) {
+            	
+                Packet packet = inflight.remove(0);
+                packet.getSource().transmitResult(time, packet, success);
+                if (success && packet.getSlotsNeededToCompletePacketTransmission() == 0) {
+                	packet.resetPacketTransmission();
+                	Packet temp = packet.getDestination().receive(time, packet, packetDrop);
+                	if(temp != null) {
+                		packetsThatReceachedGateway.add(temp);
+                	}
+                }
+            }
+            
+            updateTableStats(stats,packetsThatReceachedGateway,(int) time);
+        }
+        return stats;
     }
 
     /**
@@ -172,5 +262,192 @@ public class Simulator {
      */
     public List<Node> getNodes() {
     	return nodes;
+    }
+    
+    /**
+     * updates the passed TableStatistics object 
+     * @param stats
+     * @param time
+     */
+    private void updateTableStats(TableStatistics stats, List<Packet> packetsThatReceachedGateway, int time) {
+
+    	for(Node node : nodes) {
+    		PriorityQueue<Packet> queue = node.queue;
+    		if(queue.size() == 0) {
+    			for(int i = 0 ; i < TableStatisticsIndexConstant.COLUMN_NAMES.length; i++) {
+    				switch (i) {
+    				case TableStatisticsIndexConstant.TIME :
+    					stats.assign(i, time);
+    					break;
+    				case TableStatisticsIndexConstant.NODE :
+    					stats.assign(i, node.getVertex().getId());
+    					break;
+    				case TableStatisticsIndexConstant.NODE_BACKOFF :
+    					stats.assign(i, node.backoff);
+    					break;
+    				case TableStatisticsIndexConstant.NODE_CW :
+    					stats.assign(i, node.cw);
+    					break;
+    				case TableStatisticsIndexConstant.NODE_QUEUE_SIZE :
+    					stats.assign(i, node.queue.size());
+    					break;
+    				case TableStatisticsIndexConstant.NODE_TRANSMIT_ACTION :
+    					stats.assign(i, node.slotTransmissionResult);
+    					break;
+    				case TableStatisticsIndexConstant.NODE_RECEIVE_ACTION :
+    					stats.assign(i, node.slotReceptionResult);
+    					break;
+    				case TableStatisticsIndexConstant.NODE_STATE :
+    					stats.assign(i, node.state);
+    					break;
+    				case TableStatisticsIndexConstant.PACKET_PERIOD :
+    					stats.assign(i, -1); 
+    					break;
+    				case TableStatisticsIndexConstant.PACKET_PHASE :
+    					stats.assign(i, -1);
+    					break;
+    				case TableStatisticsIndexConstant.PACKET_DEADLINE :
+    					stats.assign(i, -1);
+    					break;
+    				case TableStatisticsIndexConstant.PACKET_SLACK :
+    					stats.assign(i, -1);
+    					break;
+    				case TableStatisticsIndexConstant.PACKET_TYPE_INSTANCE_NUM :
+    					stats.assign(i, -1);
+    					break;
+    				case TableStatisticsIndexConstant.PACKET_NEXT_DEST :
+    					stats.assign(i, -1);
+    					break;
+    				case TableStatisticsIndexConstant.PACKET_CREATION_NODE :
+    					stats.assign(i, -1);
+    					break;
+    				case TableStatisticsIndexConstant.PACKET_FINAL_DEST_NODE :
+    					stats.assign(i, -1);
+    					break;
+    				case TableStatisticsIndexConstant.PACKET_SLOTS_TO_SEND_TO_NEXT_DEST :
+    					stats.assign(i, -1);
+    					break;
+    				}
+    			}
+    			stats.next();
+    		} else {
+    			for(Packet packet : queue) {
+        			for(int i = 0 ; i < TableStatisticsIndexConstant.COLUMN_NAMES.length; i++) {
+        				switch (i) {
+        				case TableStatisticsIndexConstant.TIME :
+        					stats.assign(i, time);
+        					break;
+        				case TableStatisticsIndexConstant.NODE :
+        					stats.assign(i, node.getVertex().getId());
+        					break;
+        				case TableStatisticsIndexConstant.NODE_BACKOFF :
+        					stats.assign(i, node.backoff);
+        					break;
+        				case TableStatisticsIndexConstant.NODE_CW :
+        					stats.assign(i, node.cw);
+        					break;
+        				case TableStatisticsIndexConstant.NODE_QUEUE_SIZE :
+        					stats.assign(i, node.queue.size());
+        					break;
+        				case TableStatisticsIndexConstant.NODE_TRANSMIT_ACTION :
+        					stats.assign(i, node.slotTransmissionResult);
+        					break;
+        				case TableStatisticsIndexConstant.NODE_RECEIVE_ACTION :
+        					stats.assign(i, node.slotReceptionResult);
+        					break;
+        				case TableStatisticsIndexConstant.NODE_STATE :
+        					stats.assign(i, node.state);
+        					break;
+        				case TableStatisticsIndexConstant.PACKET_PERIOD :
+        					stats.assign(i, ((PeriodicFlow) packet.getFlow()).getPeriod()); 
+        					break;
+        				case TableStatisticsIndexConstant.PACKET_PHASE :
+        					stats.assign(i, ((PeriodicFlow) packet.getFlow()).getPhase());
+        					break;
+        				case TableStatisticsIndexConstant.PACKET_DEADLINE :
+        					stats.assign(i, ((PeriodicFlow) packet.getFlow()).getDeadline());
+        					break;
+        				case TableStatisticsIndexConstant.PACKET_SLACK :
+        					stats.assign(i, ((PeriodicFlow) packet.getFlow()).getDeadline() - packet.timeSinceCreation);
+        					break;
+        				case TableStatisticsIndexConstant.PACKET_TYPE_INSTANCE_NUM :
+        					stats.assign(i, packet.getInstance());
+        					break;
+        				case TableStatisticsIndexConstant.PACKET_NEXT_DEST :
+        					stats.assign(i, packet.getDestination().getVertex().getId());
+        					break;
+        				case TableStatisticsIndexConstant.PACKET_CREATION_NODE :
+        					stats.assign(i, packet.getFlow().getSource().getId());
+        					break;
+        				case TableStatisticsIndexConstant.PACKET_FINAL_DEST_NODE :
+        					stats.assign(i, packet.getFlow().getDestination().getId());
+        					break;
+        				case TableStatisticsIndexConstant.PACKET_SLOTS_TO_SEND_TO_NEXT_DEST :
+        					stats.assign(i, packet.getSlotsNeededToCompletePacketTransmission());
+        					break;
+        				}
+        			}
+        			stats.next();
+        		}
+    		}
+    	}
+    	for(Packet packet : packetsThatReceachedGateway) {
+    		for(int i = 0 ; i < TableStatisticsIndexConstant.COLUMN_NAMES.length; i++) {
+				switch (i) {
+				case TableStatisticsIndexConstant.TIME :
+					stats.assign(i, time);
+					break;
+				case TableStatisticsIndexConstant.NODE :
+					stats.assign(i, -1);
+					break;
+				case TableStatisticsIndexConstant.NODE_BACKOFF :
+					stats.assign(i, -1);
+					break;
+				case TableStatisticsIndexConstant.NODE_CW :
+					stats.assign(i, -1);
+					break;
+				case TableStatisticsIndexConstant.NODE_QUEUE_SIZE :
+					stats.assign(i, -1);
+					break;
+				case TableStatisticsIndexConstant.NODE_TRANSMIT_ACTION :
+					stats.assign(i, -1);
+					break;
+				case TableStatisticsIndexConstant.NODE_RECEIVE_ACTION :
+					stats.assign(i, -1);
+					break;
+				case TableStatisticsIndexConstant.NODE_STATE :
+					stats.assign(i, -1);
+					break;
+				case TableStatisticsIndexConstant.PACKET_PERIOD :
+					stats.assign(i, ((PeriodicFlow) packet.getFlow()).getPeriod()); 
+					break;
+				case TableStatisticsIndexConstant.PACKET_PHASE :
+					stats.assign(i, ((PeriodicFlow) packet.getFlow()).getPhase());
+					break;
+				case TableStatisticsIndexConstant.PACKET_DEADLINE :
+					stats.assign(i, ((PeriodicFlow) packet.getFlow()).getDeadline());
+					break;
+				case TableStatisticsIndexConstant.PACKET_SLACK :
+					stats.assign(i, ((PeriodicFlow) packet.getFlow()).getDeadline() - packet.timeSinceCreation);
+					break;
+				case TableStatisticsIndexConstant.PACKET_TYPE_INSTANCE_NUM :
+					stats.assign(i, packet.getInstance());
+					break;
+				case TableStatisticsIndexConstant.PACKET_NEXT_DEST :
+					stats.assign(i, packet.getDestination().getVertex().getId());
+					break;
+				case TableStatisticsIndexConstant.PACKET_CREATION_NODE :
+					stats.assign(i, packet.getFlow().getSource().getId());
+					break;
+				case TableStatisticsIndexConstant.PACKET_FINAL_DEST_NODE :
+					stats.assign(i, packet.getFlow().getDestination().getId());
+					break;
+				case TableStatisticsIndexConstant.PACKET_SLOTS_TO_SEND_TO_NEXT_DEST :
+					stats.assign(i, packet.getSlotsNeededToCompletePacketTransmission());
+					break;
+				}
+			}
+			stats.next();
+    	}
     }
 }

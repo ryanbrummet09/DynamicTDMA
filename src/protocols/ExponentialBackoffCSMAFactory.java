@@ -32,7 +32,7 @@ public class ExponentialBackoffCSMAFactory extends NodeFactory{
 	/**
 	 * creates a new ExponentialBackoffCSMA node using the factories contention window settings
 	 * @param vertex
-	 * @param simulator
+	 * @param oldSimulator
 	 * @return
 	 */
 	@Override

@@ -17,7 +17,7 @@ public class Packet {
     private final int instance;
     private int timeSlotsNeededToSendPacket;
     protected Map<Flow, Integer> instanceCounters = new HashMap<>();
-    private int timeSinceCreation; // gives the amount of time that has passed since this packet was created
+    protected int timeSinceCreation; // gives the amount of time that has passed since this packet was created
     private boolean packetHasBeenCounted;
 
     /**

@@ -1,5 +1,7 @@
 package protocols;
 
+import constants.ReceptionChannelConstants;
+import constants.TransmissionChannelConstants;
 import simulator.Node;
 import simulator.Packet;
 import simulator.Simulator;
@@ -21,7 +23,7 @@ public class ExponentialBackoffCSMA extends Node{
 	/**
 	 * Constructor for ExponentialBackoffCSMA node
 	 * @param vertex
-	 * @param simulator
+	 * @param oldSimulator
 	 * @param maxQueueSize
 	 * @param minContentionWindow
 	 * @param maxContentionWindow
@@ -71,6 +73,7 @@ public class ExponentialBackoffCSMA extends Node{
             if (backoff == 0) {
                 // we will transmitResult
                 Packet packet = queue.peek();
+                slotTransmissionResult = TransmissionChannelConstants.CONTENTION;
                 return packet;
             }
         }
@@ -123,27 +126,30 @@ public class ExponentialBackoffCSMA extends Node{
     }
 	
 	/**
-     * Handles the reception of packets at this node.  Returns the latency deadline ratio of the packet if this node is its final destination or
-     * -1 if the flow associated with the received packet is not periodic, if this node is not the packet's final destination, or if the packet was dropped.
+     * Handles the reception of packets at this node.  Returns the packet if this node is its final destination or
+     * null if the flow associated with the received packet is not periodic, if this node is not the packet's final destination, or if the packet was dropped.
      * If packetDropped is true, stats is updated but nothing else occurs (ie we drop the packet)
      * @param time
      * @param packet
      * @param packetDropped
      */
 	@Override
-	public double receive(long time, Packet packet, boolean packetDropped) {
+	public Packet receive(long time, Packet packet, boolean packetDropped) {
         assert (packet.getDestination() == this);
 
         stats.incRx();
         if(!packetDropped) {
+        	slotReceptionResult = ReceptionChannelConstants.PACKET_RECEIVED;
         	if (packet.getFlow().getDestination() != vertex) {
                 startTransmission(time, packet);
             } else {
-            	return packet.getLatencyDeadlineRatio();
+            	return packet;
             }
+        } else {
+        	slotReceptionResult = ReceptionChannelConstants.PACKET_DROPPED;
         }
         
-        return -1;
+        return null;
     }
 	
 	/**

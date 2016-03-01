@@ -26,7 +26,7 @@ public class SimpleCSMAFactory extends NodeFactory{
     /**
      * Creates a new SimpleCSMA node using the factories contention window settings
      * @param vertex
-     * @param simulator
+     * @param oldSimulator
      * @param seed
      * @return
      */

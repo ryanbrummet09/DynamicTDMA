@@ -2,6 +2,9 @@ package simulator;
 
 import java.util.*;
 
+import constants.ReceptionChannelConstants;
+import constants.TransmissionChannelConstants;
+import simulator.statistics.NodeStatistics;
 import topology.topologyFoundationCode.Vertex;
 import workload.workloadFoundationCode.Flow;
 import workload.workloadFoundationCode.Workload;
@@ -43,6 +46,9 @@ public abstract class Node {
     protected int state = INACTIVE;
     
     private int maxQueueSize;
+    
+    public int slotTransmissionResult;
+    public int slotReceptionResult;
 
 
     // collect statistics
@@ -51,7 +57,7 @@ public abstract class Node {
     /**
      * creates a new node
      * @param vertex
-     * @param simulator
+     * @param oldSimulator
      * @param maxQueueSize
      * @param seed
      */
@@ -90,6 +96,8 @@ public abstract class Node {
      * @return
      */
     public Packet contend(long time) {
+    	slotTransmissionResult = TransmissionChannelConstants.IDLE;
+    	slotReceptionResult = ReceptionChannelConstants.IDLE;
     	Packet packet = abstractContend(time);
     	
     	for(Packet p : queue) {
@@ -123,7 +131,7 @@ public abstract class Node {
      * @param packetDropped
      * @return
      */
-    public abstract double receive(long time, Packet packet, boolean packetDropped);
+    public abstract Packet receive(long time, Packet packet, boolean packetDropped);
     
     /**
      * places a packet in this nodes queue to be sent to the nextNode as indicated by information contained in the packet.
@@ -210,5 +218,6 @@ public abstract class Node {
     public Vertex getVertex() {
     	return vertex;
     }
+    
     
 }
