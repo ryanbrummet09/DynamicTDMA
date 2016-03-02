@@ -200,9 +200,7 @@ public class Simulator {
             	// contention
             }
             
-            
-            
-            List<Packet> packetsThatReceachedGateway = new ArrayList<Packet>();
+            List<Packet> packetsThatReceachedGatewayOrWereDropped = new ArrayList<Packet>();
             while(inflight.size() > 0) {
             	
                 Packet packet = inflight.remove(0);
@@ -211,12 +209,12 @@ public class Simulator {
                 	packet.resetPacketTransmission();
                 	Packet temp = packet.getDestination().receive(time, packet, packetDrop);
                 	if(temp != null) {
-                		packetsThatReceachedGateway.add(temp);
+                		packetsThatReceachedGatewayOrWereDropped.add(temp);
                 	}
                 }
             }
             
-            updateTableStats(stats,packetsThatReceachedGateway,(int) time);
+            updateTableStats(stats,packetsThatReceachedGatewayOrWereDropped,(int) time);
         }
         return stats;
     }
@@ -269,7 +267,7 @@ public class Simulator {
      * @param stats
      * @param time
      */
-    private void updateTableStats(TableStatistics stats, List<Packet> packetsThatReceachedGateway, int time) {
+    private void updateTableStats(TableStatistics stats, List<Packet> packetsThatReceachedGatewayOrWereDropped, int time) {
 
     	for(Node node : nodes) {
     		PriorityQueue<Packet> queue = node.queue;
@@ -327,10 +325,20 @@ public class Simulator {
     				case TableStatisticsIndexConstant.PACKET_SLOTS_TO_SEND_TO_NEXT_DEST :
     					stats.assign(i, -1);
     					break;
+    				case TableStatisticsIndexConstant.PACKET_TIME_IN_CURRENT_QUEUE :
+    					stats.assign(i, -1);
+    					break;
+    				case TableStatisticsIndexConstant.PACKET_DROPPED :
+    					stats.assign(i, -1);
+    					break;
+    				case TableStatisticsIndexConstant.PACKET_POSITION_IN_QUEUE :
+    					stats.assign(i, -1);
+    					break;
     				}
     			}
     			stats.next();
     		} else {
+    			int index = 0;
     			for(Packet packet : queue) {
         			for(int i = 0 ; i < TableStatisticsIndexConstant.COLUMN_NAMES.length; i++) {
         				switch (i) {
@@ -385,13 +393,23 @@ public class Simulator {
         				case TableStatisticsIndexConstant.PACKET_SLOTS_TO_SEND_TO_NEXT_DEST :
         					stats.assign(i, packet.getSlotsNeededToCompletePacketTransmission());
         					break;
+        				case TableStatisticsIndexConstant.PACKET_TIME_IN_CURRENT_QUEUE :
+        					stats.assign(i, packet.getTimeInCurrentQueue());
+        					break;
+        				case TableStatisticsIndexConstant.PACKET_DROPPED :
+        					stats.assign(i, packet.getPacketDropped());
+        					break;
+        				case TableStatisticsIndexConstant.PACKET_POSITION_IN_QUEUE :
+        					stats.assign(i, index);
+        					break;
         				}
         			}
+        			index = index + 1;
         			stats.next();
         		}
     		}
     	}
-    	for(Packet packet : packetsThatReceachedGateway) {
+    	for(Packet packet : packetsThatReceachedGatewayOrWereDropped) {
     		for(int i = 0 ; i < TableStatisticsIndexConstant.COLUMN_NAMES.length; i++) {
 				switch (i) {
 				case TableStatisticsIndexConstant.TIME :
@@ -444,6 +462,15 @@ public class Simulator {
 					break;
 				case TableStatisticsIndexConstant.PACKET_SLOTS_TO_SEND_TO_NEXT_DEST :
 					stats.assign(i, packet.getSlotsNeededToCompletePacketTransmission());
+					break;
+				case TableStatisticsIndexConstant.PACKET_TIME_IN_CURRENT_QUEUE :
+					stats.assign(i, packet.getTimeInCurrentQueue());
+					break;
+				case TableStatisticsIndexConstant.PACKET_DROPPED :
+					stats.assign(i, packet.getPacketDropped());
+					break;
+				case TableStatisticsIndexConstant.PACKET_POSITION_IN_QUEUE :
+					stats.assign(i, -1);
 					break;
 				}
 			}

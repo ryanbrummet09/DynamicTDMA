@@ -39,9 +39,9 @@ public class TableStatistics {
 	 * @throws IOException
 	 */
 	public void saveResultsToFile(String fileName) throws IOException {
-		BufferedWriter bw = new BufferedWriter(new FileWriter(fileName));
+		BufferedWriter bw = new BufferedWriter(new FileWriter(fileName + ".csv"));
 		for(int i = 0; i < TableStatisticsIndexConstant.COLUMN_NAMES.length; i++) {
-			if(i == TableStatisticsIndexConstant.COLUMN_NAMES.length) {
+			if(i + 1 == TableStatisticsIndexConstant.COLUMN_NAMES.length) {
 				bw.write(TableStatisticsIndexConstant.COLUMN_NAMES[i]);
 			} else {
 				bw.write(TableStatisticsIndexConstant.COLUMN_NAMES[i] + ",");
@@ -52,9 +52,9 @@ public class TableStatistics {
 		for(int[] line : results) {
 			for(int i = 0; i < TableStatisticsIndexConstant.COLUMN_NAMES.length; i ++) {
 				if(i + 1 == TableStatisticsIndexConstant.COLUMN_NAMES.length) {
-					bw.write(line[i]);
+					bw.write(Integer.toString(line[i]));
 				} else {
-					bw.write(line[i] + ",");
+					bw.write(Integer.toString(line[i]) + ",");
 				}
 			}
 			bw.newLine();

@@ -91,7 +91,7 @@ public abstract class Node {
     protected abstract Packet abstractContend(long time);
     
     /**
-     * This method is added only to make sure that each time abstractContend is called that each packet in this nodes queue has its timer incremented
+     * This method is added only to make sure that each time abstractContend is called that each packet in this nodes queue has its timers incremented
      * @param time
      * @return
      */
@@ -102,6 +102,7 @@ public abstract class Node {
     	
     	for(Packet p : queue) {
         	p.incrementTimeSinceCreation();
+        	p.incrementTimeInCurrentQueue();
         }
     	return packet;
     }
@@ -122,8 +123,7 @@ public abstract class Node {
      * @param success
      */
     public abstract void transmitResult(long time, Packet packet, boolean success);
-
-
+    
     /**
      * You received a packet. Returns ((mean latency) / (deadline)) of a packet if the destination was the gateway, null otherwise
      * @param time
@@ -131,7 +131,22 @@ public abstract class Node {
      * @param packetDropped
      * @return
      */
-    public abstract Packet receive(long time, Packet packet, boolean packetDropped);
+    public abstract Packet abstractReceive(long time, Packet packet, boolean packetDropped);
+
+    /**
+     * This method is added only to make sure that each time abstractReceived is called the received packet's time in queue  is reset to zero
+     * @param time
+     * @return
+     */
+    public Packet receive(long time, Packet packet, boolean packetDropped) {
+    	Packet receivedPacket = abstractReceive(time, packet, packetDropped);
+    	if(receivedPacket != null) {
+    		receivedPacket.resetTimeInCurrentQueue();
+    		return receivedPacket;
+    	} else {
+    		return null;
+    	}
+    }
     
     /**
      * places a packet in this nodes queue to be sent to the nextNode as indicated by information contained in the packet.

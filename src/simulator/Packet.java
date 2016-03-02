@@ -19,6 +19,8 @@ public class Packet {
     protected Map<Flow, Integer> instanceCounters = new HashMap<>();
     protected int timeSinceCreation; // gives the amount of time that has passed since this packet was created
     private boolean packetHasBeenCounted;
+    private int timeInCurrentQueue;
+    private int packetDropped;
 
     /**
      * creates a new Packet for the given flow
@@ -38,6 +40,8 @@ public class Packet {
         instanceCounters.put(flow, count + 1);
         this.timeSinceCreation = 0;
         packetHasBeenCounted = false;
+        timeInCurrentQueue = 0;
+        packetDropped = 0;
     }
 
     /**
@@ -173,5 +177,43 @@ public class Packet {
      */
     public void countPacket() {
     	packetHasBeenCounted = true;
+    }
+    
+    /**
+     * Returns the amount of time that this packet has been in its current queue (ie the queue of the node this packet is in)
+     * @return
+     */
+    public int getTimeInCurrentQueue() {
+    	return timeInCurrentQueue;
+    }
+    
+    /**
+     * increases the time counter keeping track of how long this packet has been in its current queue (ie the queue of the node this packet is int)
+     */
+    public void incrementTimeInCurrentQueue() {
+    	timeInCurrentQueue++;
+    }
+    
+    /**
+     * resets the time counter of this packet for how long it has been in the current queue to zero (this indicates that this packet has been transmitted)
+     * @return
+     */
+    public void resetTimeInCurrentQueue() {
+    	timeInCurrentQueue = 0;
+    }
+    
+    /**
+     * This method is called when this packet has been dropped upon reception by a receiving node (after being transmitted and removed from senders queue)
+     */
+    public void dropPacket(){
+    	packetDropped = 1;
+    }
+    
+    /**
+     * returns true if this packet has been dropped, false otherwise
+     * @return
+     */
+    public int getPacketDropped() {
+    	return packetDropped;
     }
 }

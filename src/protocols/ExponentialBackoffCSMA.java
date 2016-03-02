@@ -126,15 +126,15 @@ public class ExponentialBackoffCSMA extends Node{
     }
 	
 	/**
-     * Handles the reception of packets at this node.  Returns the packet if this node is its final destination or
-     * null if the flow associated with the received packet is not periodic, if this node is not the packet's final destination, or if the packet was dropped.
+     * Handles the reception of packets at this node.  Returns the packet if this node is its final destination or it has been dropped
+     * null if the flow associated with the received packet is not periodic, or if this node is not the packet's final destination.
      * If packetDropped is true, stats is updated but nothing else occurs (ie we drop the packet)
      * @param time
      * @param packet
      * @param packetDropped
      */
 	@Override
-	public Packet receive(long time, Packet packet, boolean packetDropped) {
+	public Packet abstractReceive(long time, Packet packet, boolean packetDropped) {
         assert (packet.getDestination() == this);
 
         stats.incRx();
@@ -147,6 +147,8 @@ public class ExponentialBackoffCSMA extends Node{
             }
         } else {
         	slotReceptionResult = ReceptionChannelConstants.PACKET_DROPPED;
+        	packet.dropPacket();
+        	return packet;
         }
         
         return null;

@@ -21,11 +21,11 @@ public class ParallelRunExperiment {
     public static void main(String args[]) {
     	int numOfSlotsNeededToSendPacket = 1;
     	final int totalAmountOfTimeToRunSim = 5000;
-    	int numOfTimesToRepeatSim = 10;
+    	int numOfTimesToRepeatSim = 1000;
     	final int protocol = 1;  // 1 for simple CSMA, 2 for exponential CSMA,
     	final int minContentionWindow = 16;  // (16,32,64) via "Performance Analysis of the IEEE 802.11 Distributed Coordination Function" J-SAC 2000
     	final int maxContentionWindow = 1024;  // (1024) via same as minContentionWindow
-    	boolean randomFlowPhase = false;
+    	boolean randomFlowPhase = true;
     	int[] flowClasses = {200,250,300}; // only has an effect on periodic flows (ie workflow classes 1 and 2)
     	int randomSeed = 1;  // this affects only the generation of flows, the simulator has a different seed associated with the random values it generates
     	final double failureChance = 0;  // value on the interval [0,100].  This gives the percent chance of a transmission failing
@@ -35,7 +35,7 @@ public class ParallelRunExperiment {
     	final Topology topology = topologyFactory.getNewInstanceOfThisTopology();
     	AbstractExampleWorkload workloadFactory = new Workload1(topology, numOfSlotsNeededToSendPacket, flowClasses, randomFlowPhase, true, randomSeed);
     	final Workload workload = workloadFactory.getNewInstanceOfThisWorkload();
-    	final String experimentFileName = "SimpleCSMA_CW16_FLOW200S250S300_RandPHASE0_Queue10_RUN"; //"CSMASimulation";
+    	final String experimentFileName = "SimpleCSMA_CW16_FLOW200S250S300_RandPHASE1_Queue10_RUN"; //"CSMASimulation";
     	
     	
     	int threads = Runtime.getRuntime().availableProcessors();
@@ -48,7 +48,7 @@ public class ParallelRunExperiment {
         
         for (final int simNum : simIter) {
             Callable<Object> callable = new Callable<Object>() {
-                public Object call() throws Exception {
+				public Object call() throws Exception {
                 	System.out.println(Integer.toString(simNum));
                 	Simulator simulator;
                 	
