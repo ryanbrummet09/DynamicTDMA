@@ -10,15 +10,13 @@
 #
 #
 #
-#
 
 __author__ = 'Ryan Brummet'
 import os;
 import sys;
 import getopt;
 import numpy;
-import itertools
-from multiprocessing import Pool, freeze_support
+from multiprocessing import Process;
 import multiprocessing
 import csv;
 import datetime
@@ -83,11 +81,7 @@ def stdIn(argv):
     return getFileNames(folderLocation, "csv"), outputLocation;
     
     
-def parallelStatsConvert(data, numSims, numUniqueNodes, colNames, time) :
-    return data, numSims, numUniqueNodes, colNames, time;
-    
-    
-def parallelStats(arg) :
+def parallelStats(timeData, numSims, numUniqueNodes, colNames, time) :
     # Rows -> NodeID (there is a one col for this)
     # Cols -> For Each Time Unit -> NodeID, minBackOff, MaxBackOff, avgBackOff,
     #         stdBackOff, minCW, maxCW, avgCW, stdCW, minQueueSize, 
@@ -98,8 +92,6 @@ def parallelStats(arg) :
     #         ReceptionSuccess%, NodeStateInActive%, NodeStateContending%
     #         
 
-    data, numSims, numUniqueNodes, colNames, time = parallelStatsConvert(*arg);
-    timeData = data[time];
     timeDateNumpy = [];
     for fileNum in range(0,len(timeData)) :
         fileTimeDateNumpy = numpy.vstack(timeData[fileNum][:]);
@@ -107,45 +99,45 @@ def parallelStats(arg) :
     timeDateNumpy = numpy.vstack(timeDateNumpy[:]);
     timeStats = numpy.zeros((numUniqueNodes, len(colNames)));
     for node in range(0, numUniqueNodes) :
-        timeDateNodeNumpy = timeDateNumpy[timeDateNumpy[:,NODE] == node,:];
-        timeDateNodeNumpy = timeDateNodeNumpy[timeDateNodeNumpy[:,PACKET_POSITION_IN_QUEUE] <= 0,:];
+        timeDateNodeNumpy = timeDateNumpy[timeDateNumpy[:,0] == node,:];
+        timeDateNodeNumpy = timeDateNodeNumpy[timeDateNodeNumpy[:,7] <= 0,:];
         timeStats[node,0] = node;
         
-        timeStats[node,1] = numpy.min(timeDateNodeNumpy[:,NODE_BACKOFF]);
-        timeStats[node,2] = numpy.max(timeDateNodeNumpy[:,NODE_BACKOFF]);
-        timeStats[node,3] = numpy.mean(timeDateNodeNumpy[:,NODE_BACKOFF]);
-        timeStats[node,4] = numpy.std(timeDateNodeNumpy[:,NODE_BACKOFF]);
-        timeStats[node,5] = numpy.min(timeDateNodeNumpy[:,NODE_CW]);
-        timeStats[node,6] = numpy.max(timeDateNodeNumpy[:,NODE_CW]);
-        timeStats[node,7] = numpy.mean(timeDateNodeNumpy[:,NODE_CW]);
-        timeStats[node,8] = numpy.std(timeDateNodeNumpy[:,NODE_CW]);
-        timeStats[node,9] = numpy.min(timeDateNodeNumpy[:,NODE_QUEUE_SIZE]);
-        timeStats[node,10] = numpy.max(timeDateNodeNumpy[:,NODE_QUEUE_SIZE]);
-        timeStats[node,11] = numpy.mean(timeDateNodeNumpy[:,NODE_QUEUE_SIZE]);
-        timeStats[node,12] = numpy.std(timeDateNodeNumpy[:,NODE_QUEUE_SIZE]);
+        timeStats[node,1] = numpy.min(timeDateNodeNumpy[:,1]);
+        timeStats[node,2] = numpy.max(timeDateNodeNumpy[:,1]);
+        timeStats[node,3] = numpy.mean(timeDateNodeNumpy[:,1]);
+        timeStats[node,4] = numpy.std(timeDateNodeNumpy[:,1]);
+        timeStats[node,5] = numpy.min(timeDateNodeNumpy[:,2]);
+        timeStats[node,6] = numpy.max(timeDateNodeNumpy[:,2]);
+        timeStats[node,7] = numpy.mean(timeDateNodeNumpy[:,2]);
+        timeStats[node,8] = numpy.std(timeDateNodeNumpy[:,2]);
+        timeStats[node,9] = numpy.min(timeDateNodeNumpy[:,3]);
+        timeStats[node,10] = numpy.max(timeDateNodeNumpy[:,3]);
+        timeStats[node,11] = numpy.mean(timeDateNodeNumpy[:,3]);
+        timeStats[node,12] = numpy.std(timeDateNodeNumpy[:,3]);
         index = 13
         for x in range(1,len(colNames) - 22) :
-            timeStats[node,index] = float(timeDateNodeNumpy[timeDateNodeNumpy[:,NODE_QUEUE_SIZE] == x,:].shape[0]) / numSims;
+            timeStats[node,index] = float(timeDateNodeNumpy[timeDateNodeNumpy[:,3] == x,:].shape[0]) / numSims;
             index = index + 1;
-        timeStats[node,index] = float(timeDateNodeNumpy[timeDateNodeNumpy[:,NODE_TRANSMIT_ACTION] == 0,:].shape[0]) / numSims;
+        timeStats[node,index] = float(timeDateNodeNumpy[timeDateNodeNumpy[:,4] == 0,:].shape[0]) / numSims;
         index = index + 1;
-        timeStats[node,index] = float(timeDateNodeNumpy[timeDateNodeNumpy[:,NODE_TRANSMIT_ACTION] == 1,:].shape[0]) / numSims;
+        timeStats[node,index] = float(timeDateNodeNumpy[timeDateNodeNumpy[:,4] == 1,:].shape[0]) / numSims;
         index = index + 1;
-        timeStats[node,index] = float(timeDateNodeNumpy[timeDateNodeNumpy[:,NODE_TRANSMIT_ACTION] == 2,:].shape[0]) / numSims;
+        timeStats[node,index] = float(timeDateNodeNumpy[timeDateNodeNumpy[:,4] == 2,:].shape[0]) / numSims;
         index = index + 1;
-        timeStats[node,index] = float(timeDateNodeNumpy[timeDateNodeNumpy[:,NODE_TRANSMIT_ACTION] == 3,:].shape[0]) / numSims;
+        timeStats[node,index] = float(timeDateNodeNumpy[timeDateNodeNumpy[:,4] == 3,:].shape[0]) / numSims;
         index = index + 1;
-        timeStats[node,index] = float(timeDateNodeNumpy[timeDateNodeNumpy[:,NODE_TRANSMIT_ACTION] == 4,:].shape[0]) / numSims;
+        timeStats[node,index] = float(timeDateNodeNumpy[timeDateNodeNumpy[:,4] == 4,:].shape[0]) / numSims;
         index = index + 1;
-        timeStats[node,index] = float(timeDateNodeNumpy[timeDateNodeNumpy[:,NODE_RECEIVE_ACTION] == 0,:].shape[0]) / numSims;
+        timeStats[node,index] = float(timeDateNodeNumpy[timeDateNodeNumpy[:,5] == 0,:].shape[0]) / numSims;
         index = index + 1;
-        timeStats[node,index] = float(timeDateNodeNumpy[timeDateNodeNumpy[:,NODE_RECEIVE_ACTION] == 1,:].shape[0]) / numSims;
+        timeStats[node,index] = float(timeDateNodeNumpy[timeDateNodeNumpy[:,5] == 1,:].shape[0]) / numSims;
         index = index + 1;
-        timeStats[node,index] = float(timeDateNodeNumpy[timeDateNodeNumpy[:,NODE_RECEIVE_ACTION] == 2,:].shape[0]) / numSims;
+        timeStats[node,index] = float(timeDateNodeNumpy[timeDateNodeNumpy[:,5] == 2,:].shape[0]) / numSims;
         index = index + 1;
-        timeStats[node,index] = float(timeDateNodeNumpy[timeDateNodeNumpy[:,NODE_STATE] == 0,:].shape[0]) / numSims;
+        timeStats[node,index] = float(timeDateNodeNumpy[timeDateNodeNumpy[:,6] == 0,:].shape[0]) / numSims;
         index = index + 1;
-        timeStats[node,index] = float(timeDateNodeNumpy[timeDateNodeNumpy[:,NODE_STATE] == 1,:].shape[0]) / numSims;
+        timeStats[node,index] = float(timeDateNodeNumpy[timeDateNodeNumpy[:,6] == 1,:].shape[0]) / numSims;
         index = index + 1;
        
     thisColNames = colNames[:];
@@ -196,38 +188,53 @@ def calculateNodeQueueStatus(files, outputLocation) :
         numUniqueNodes[:] = numUniqueNodes + list(set(nodeReferences) - set(numUniqueNodes));
     numUniqueNodes = len([item for item in numUniqueNodes if item >= 0]);
     
-    print "-Loading Data\n";
-    data = [];
-    for file in files:
-        fileData = numpy.loadtxt(file, delimiter=',',skiprows=1);
-        fileTimeData= [];
-        index = 0;
-        for time in range(0,maxTime) :
-            specificTimeFileData = [];
-            while index < fileData.shape[0] and fileData[index,0] <= time :
-                specificTimeFileData.append(fileData[index,:]);
-                index = index + 1;
-            fileTimeData.append(specificTimeFileData);
-        data.append(fileTimeData);
+    print "-Loading Data";
+    print datetime.datetime.time(datetime.datetime.now());
+    print "";
+    loadedData = [];
+    for file in files :
+        fileData = numpy.loadtxt(file, delimiter=',',skiprows=1, 
+                                 usecols = [TIME,NODE,NODE_BACKOFF,NODE_CW,NODE_QUEUE_SIZE,
+                                            NODE_TRANSMIT_ACTION,NODE_RECEIVE_ACTION,
+                                            NODE_STATE,PACKET_POSITION_IN_QUEUE]);
+        loadedData.append(fileData);
     
-    timeData = [];
+    print "-Calculating Statistics";
+    print datetime.datetime.time(datetime.datetime.now());
+    print "";
+    indexes = numpy.zeros((1,len(loadedData)));
+    processList = [];
+    numCols = loadedData[0][0,:].shape[0];
+    maxNumProcesses = multiprocessing.cpu_count();
     for time in range(0,maxTime) :
+        fileIndex = 0;
         specificTimeData = [];
-        for i in range(0, numSims) :
-            specificTimeData.append(data[i].pop(0));
-        timeData.append(specificTimeData);
-    
-    print "-Calculating Statistics\n";
-    parIndexes = range(0,maxTime);
-    #parallelStats(timeData, numSims, numUniqueNodes, colNames, 100);
-    #parallelStats(timeData, numSims, numUniqueNodes, colNames, 110);
-    
-    pool = Pool(processes=multiprocessing.cpu_count());
-    pool.map(parallelStats, itertools.izip(itertools.repeat(timeData), itertools.repeat(numSims), itertools.repeat(numUniqueNodes), itertools.repeat(colNames), parIndexes));
-    pool.close();
-    pool.join();
-    
-    print "-Aggregating Results\n";
+        for file in loadedData :
+            specificFileTimeData = [];
+            while indexes[0,fileIndex] < file.shape[0] and file[indexes[0,fileIndex],TIME] == time:
+                specificFileTimeData.append(file[indexes[0,fileIndex],range(1,numCols)]);
+                indexes[0,fileIndex] = indexes[0,fileIndex] + 1;
+            fileIndex = fileIndex + 1;
+            specificTimeData.append(specificFileTimeData);
+        if len(processList) <= maxNumProcesses :
+            p = Process(target=parallelStats, args=(specificTimeData, numSims, numUniqueNodes, colNames, time));
+            p.start();
+            processList.append(p);
+        else :
+            processList[0].join();
+            for i in range(1,maxNumProcesses) :
+                processList[i - 1] = processList[i];
+            processList[maxNumProcesses] = None;
+            p = Process(target=parallelStats, args=(specificTimeData, numSims, numUniqueNodes, colNames, time));
+            p.start();
+            processList.append(p);
+    loadedData = None;
+    for runningThreads in range(0,maxNumProcesses) :
+        processList[runningThreads].join();
+#    
+    print "-Aggregating Results";
+    print datetime.datetime.time(datetime.datetime.now());
+    print "";
     stats = [];
     for time in range(0,maxTime) :
         cr = csv.reader(open(TEMPFILENAME + str(time),"rb"));
@@ -245,7 +252,9 @@ def calculateNodeQueueStatus(files, outputLocation) :
                 row.pop(0);
                 stats[node] = stats[node] + row;
     
-    print "-Writing Results To File\n";
+    print "-Writing Results To File";
+    print datetime.datetime.time(datetime.datetime.now());
+    print "";
     f = open(outputLocation, 'wb');
     for line in range(0,numUniqueNodes + 1) :
         print >> f, ",".join(stats[line]);
@@ -253,15 +262,17 @@ def calculateNodeQueueStatus(files, outputLocation) :
                
         
 def main(args) :
-    print "\n\nThis Can Take Awhile If The Number Of Simulations Or Time Slots Was High\n";
+    print "\n\nThis Can Take Awhile If The Number Of Simulations Or Time Slots Was High";
+    print datetime.datetime.time(datetime.datetime.now());
+    print "";
     files, outputLocation = stdIn(args);
     calculateNodeQueueStatus(files, outputLocation);
     
+    print datetime.datetime.time(datetime.datetime.now());
     print "Exiting...\n\n";
 
 
 if __name__ == '__main__':
-    freeze_support();
     main(sys.argv[1:])
     
     
