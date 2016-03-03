@@ -16,7 +16,7 @@ import os;
 import sys;
 import getopt;
 import numpy;
-from multiprocessing import Process;
+from multiprocessing import Process, Manager;
 import multiprocessing
 import csv;
 import datetime
@@ -80,6 +80,13 @@ def stdIn(argv):
             sys.exit(1);
     return getFileNames(folderLocation, "csv"), outputLocation;
     
+def parallelLoad(file, dictionary) :
+    fileData = numpy.loadtxt(file, delimiter=',',skiprows=1, 
+                                 usecols = [TIME,NODE,NODE_BACKOFF,NODE_CW,NODE_QUEUE_SIZE,
+                                            NODE_TRANSMIT_ACTION,NODE_RECEIVE_ACTION,
+                                            NODE_STATE,PACKET_POSITION_IN_QUEUE]);
+    dictionary[file] = fileData;
+    
     
 def parallelStats(timeData, numSims, numUniqueNodes, colNames, time) :
     # Rows -> NodeID (there is a one col for this)
@@ -100,7 +107,7 @@ def parallelStats(timeData, numSims, numUniqueNodes, colNames, time) :
     timeStats = numpy.zeros((numUniqueNodes, len(colNames)));
     for node in range(0, numUniqueNodes) :
         timeDateNodeNumpy = timeDateNumpy[timeDateNumpy[:,0] == node,:];
-        timeDateNodeNumpy = timeDateNodeNumpy[timeDateNodeNumpy[:,7] <= 0,:];
+        timeDateNodeNumpy = timeDateNodeNumpy[timeDateNodeNumpy[:,7] <= 0,:]; # we only want the head of te nodes queue or the node itself if its queue is empty
         timeStats[node,0] = node;
         
         timeStats[node,1] = numpy.min(timeDateNodeNumpy[:,1]);
@@ -143,7 +150,7 @@ def parallelStats(timeData, numSims, numUniqueNodes, colNames, time) :
     thisColNames = colNames[:];
     for title in range(0,len(colNames)) :
         thisColNames[title] = colNames[title] + str(time);
-    numpy.savetxt(TEMPFILENAME + str(time), timeStats, delimiter=',', comments = "", header =  ",".join(thisColNames));
+    numpy.savetxt(TEMPFILENAME + str(time), timeStats, delimiter=',', comments = '', header =  ",".join(thisColNames));
     
         
 def calculateNodeQueueStatus(files, outputLocation) :
@@ -191,13 +198,27 @@ def calculateNodeQueueStatus(files, outputLocation) :
     print "-Loading Data";
     print datetime.datetime.time(datetime.datetime.now());
     print "";
-    loadedData = [];
+    maxNumProcesses = multiprocessing.cpu_count();
+    manager = Manager();
+    dictionary = manager.dict();
+    processList = [];
     for file in files :
-        fileData = numpy.loadtxt(file, delimiter=',',skiprows=1, 
-                                 usecols = [TIME,NODE,NODE_BACKOFF,NODE_CW,NODE_QUEUE_SIZE,
-                                            NODE_TRANSMIT_ACTION,NODE_RECEIVE_ACTION,
-                                            NODE_STATE,PACKET_POSITION_IN_QUEUE]);
-        loadedData.append(fileData);
+        if len(processList) < maxNumProcesses :
+            p = Process(target=parallelLoad, args=(file, dictionary));
+            p.start();
+            processList.append(p);
+        else :
+            processList[0].join();
+            for i in range(1,maxNumProcesses) :
+                processList[i - 1] = processList[i];
+            processList.pop(-1);            
+            p = Process(target=parallelLoad, args=(file, dictionary));
+            p.start();
+            processList.append(p);
+    for process in processList :
+        process.join();
+    loadedData = dictionary.values();            
+    dictionary = None;
     
     print "-Calculating Statistics";
     print datetime.datetime.time(datetime.datetime.now());
@@ -205,7 +226,6 @@ def calculateNodeQueueStatus(files, outputLocation) :
     indexes = numpy.zeros((1,len(loadedData)));
     processList = [];
     numCols = loadedData[0][0,:].shape[0];
-    maxNumProcesses = multiprocessing.cpu_count();
     for time in range(0,maxTime) :
         fileIndex = 0;
         specificTimeData = [];
@@ -224,13 +244,13 @@ def calculateNodeQueueStatus(files, outputLocation) :
             processList[0].join();
             for i in range(1,maxNumProcesses) :
                 processList[i - 1] = processList[i];
-            processList[maxNumProcesses] = None;
+            processList.pop(-1);
             p = Process(target=parallelStats, args=(specificTimeData, numSims, numUniqueNodes, colNames, time));
             p.start();
             processList.append(p);
     loadedData = None;
-    for runningThreads in range(0,maxNumProcesses) :
-        processList[runningThreads].join();
+    for process in processList :
+        process.join();
 #    
     print "-Aggregating Results";
     print datetime.datetime.time(datetime.datetime.now());
@@ -263,6 +283,8 @@ def calculateNodeQueueStatus(files, outputLocation) :
         
 def main(args) :
     print "\n\nThis Can Take Awhile If The Number Of Simulations Or Time Slots Was High";
+    print "----- Temporary Files Will Be Created While Running.  DO NOT DELETE THEM. They Will Be Deleted Automatically On Exiting -----";
+    print "----- RUNNING MULTIPLE INSTANCES OF THIS SCRIPT AT THE SAME TIME WILL CAUSE DATA TO BECOME CORRUPTED";
     print datetime.datetime.time(datetime.datetime.now());
     print "";
     files, outputLocation = stdIn(args);
