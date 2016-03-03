@@ -16,10 +16,12 @@ import os;
 import sys;
 import getopt;
 import numpy;
-from multiprocessing import Process, Manager;
-import multiprocessing
+from multiprocessing import Process;
+import itertools;
+import multiprocessing;
 import csv;
-import datetime
+import datetime;
+from multiprocessing import Pool;
 
 # global index variable, do not modify
 TIME = 0;
@@ -80,12 +82,15 @@ def stdIn(argv):
             sys.exit(1);
     return getFileNames(folderLocation, "csv"), outputLocation;
     
-def parallelLoad(file, dictionary) :
+def parallelLoad(args) :
+    files, index = args;
+    file = files[index];
     fileData = numpy.loadtxt(file, delimiter=',',skiprows=1, 
                                  usecols = [TIME,NODE,NODE_BACKOFF,NODE_CW,NODE_QUEUE_SIZE,
                                             NODE_TRANSMIT_ACTION,NODE_RECEIVE_ACTION,
                                             NODE_STATE,PACKET_POSITION_IN_QUEUE]);
-    dictionary[file] = fileData;
+    print "LOADING: " + str(index);
+    return fileData;
     
     
 def parallelStats(timeData, numSims, numUniqueNodes, colNames, time) :
@@ -107,7 +112,7 @@ def parallelStats(timeData, numSims, numUniqueNodes, colNames, time) :
     timeStats = numpy.zeros((numUniqueNodes, len(colNames)));
     for node in range(0, numUniqueNodes) :
         timeDateNodeNumpy = timeDateNumpy[timeDateNumpy[:,0] == node,:];
-        timeDateNodeNumpy = timeDateNodeNumpy[timeDateNodeNumpy[:,7] <= 0,:]; # we only want the head of te nodes queue or the node itself if its queue is empty
+        timeDateNodeNumpy = timeDateNodeNumpy[timeDateNodeNumpy[:,7] <= 0,:]; # we only want the head of the hodes queue or the node itself if its queue is empty
         timeStats[node,0] = node;
         
         timeStats[node,1] = numpy.min(timeDateNodeNumpy[:,1]);
@@ -199,26 +204,8 @@ def calculateNodeQueueStatus(files, outputLocation) :
     print datetime.datetime.time(datetime.datetime.now());
     print "";
     maxNumProcesses = multiprocessing.cpu_count();
-    manager = Manager();
-    dictionary = manager.dict();
-    processList = [];
-    for file in files :
-        if len(processList) < maxNumProcesses :
-            p = Process(target=parallelLoad, args=(file, dictionary));
-            p.start();
-            processList.append(p);
-        else :
-            processList[0].join();
-            for i in range(1,maxNumProcesses) :
-                processList[i - 1] = processList[i];
-            processList.pop(-1);            
-            p = Process(target=parallelLoad, args=(file, dictionary));
-            p.start();
-            processList.append(p);
-    for process in processList :
-        process.join();
-    loadedData = dictionary.values();            
-    dictionary = None;
+    pool = Pool(processes=maxNumProcesses);
+    loadedData = pool.map(parallelLoad, itertools.izip(itertools.repeat(files), range(0,len(files))));
     
     print "-Calculating Statistics";
     print datetime.datetime.time(datetime.datetime.now());
@@ -226,6 +213,7 @@ def calculateNodeQueueStatus(files, outputLocation) :
     indexes = numpy.zeros((1,len(loadedData)));
     processList = [];
     numCols = loadedData[0][0,:].shape[0];
+    calculationIndex = 0;
     for time in range(0,maxTime) :
         fileIndex = 0;
         specificTimeData = [];
@@ -238,19 +226,25 @@ def calculateNodeQueueStatus(files, outputLocation) :
             specificTimeData.append(specificFileTimeData);
         if len(processList) <= maxNumProcesses :
             p = Process(target=parallelStats, args=(specificTimeData, numSims, numUniqueNodes, colNames, time));
+            p.daemon = True;
             p.start();
             processList.append(p);
         else :
             processList[0].join();
+            print "COMPLETED TIME CALCULATION: " + str(calculationIndex);
+            calculationIndex = calculationIndex + 1;
             for i in range(1,maxNumProcesses) :
                 processList[i - 1] = processList[i];
             processList.pop(-1);
             p = Process(target=parallelStats, args=(specificTimeData, numSims, numUniqueNodes, colNames, time));
+            p.daemon = True;
             p.start();
             processList.append(p);
     loadedData = None;
     for process in processList :
         process.join();
+        print "COMPLETED TIME CALCULATION: " + str(calculationIndex);
+        calculationIndex = calculationIndex + 1;
 #    
     print "-Aggregating Results";
     print datetime.datetime.time(datetime.datetime.now());
