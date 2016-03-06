@@ -218,6 +218,86 @@ public class Simulator {
         }
         return stats;
     }
+    
+    /**
+     * This method is used as part of an iterative approach to build a TDMA schedule.
+     * In particular, this method returns the size of each nodes queue at the start of each time slot but AFTER
+     * new packets have been release in that slot
+     * @param numSlots
+     * @return
+     */
+    public int[][] getQueueSizesOverHyperPeriod(int numSlots) {
+    	List<Packet> inflight = new ArrayList<>();
+    	
+    	int[][] queueSizes = new int[topology.getVertices().size()][numSlots];
+    	
+    	for (long time = 0; time < numSlots; time++) {
+            // check if the node has a packet to transmitResult
+    		int nodeIndex = 0;
+            for (Node node : nodes) {
+                Packet packet = node.contend(time);
+                queueSizes[nodeIndex][(int) time] = node.getNumPacketsInQueue();
+                nodeIndex = nodeIndex + 1;
+                if (packet != null) {
+                	inflight.add(packet);
+                	if(!packet.getPacketHasBeenCounted()) {
+                		packet.countPacket();
+                	}
+                }
+            }
+
+            // notify nodes of the outcome
+            for (Node node : nodes) {
+                // let the nodes know if the channel is free or busy
+                node.channelFeedback(inflight.size() == 0);
+            }
+
+            boolean success;
+            boolean packetDrop = false;
+            if(inflight.size() == 1) {
+            	if(inflight.get(0).getDestination().getNumPacketsInQueue() < inflight.get(0).getDestination().getMaxQueueSize()) {
+            		if(rand.nextDouble() * 100 < failureChance) {
+        				success = false; // packet transmission failed due to random failure chance (outside interference, etc)
+        			} else {
+        				success = true; // packet successfully transmitted
+        			}
+            	} else {
+            		success = true;  // dropped packet
+            		packetDrop = true;
+            	}
+            } else { 
+            	success = false; // collision or idle
+            }
+            if(inflight.size() == 0) {
+            	// channel idle
+            } else if(inflight.size() == 1) {
+            	if(packetDrop) {
+            		// packet dropped
+            		inflight.get(0).getSource().slotTransmissionResult = TransmissionChannelConstants.PACKET_DROPPED;
+            	} else {
+            		if(success) {
+            			// packet transmitted
+                    	inflight.get(0).getSource().slotTransmissionResult = TransmissionChannelConstants.TRANSMISSION;
+            		} else {
+            			// transmission failed due to random chance (treated as collision such that no ack was received)
+                    	inflight.get(0).getSource().slotTransmissionResult = TransmissionChannelConstants.FAILED;
+            		}
+            	}
+            } else {
+            	// contention
+            }
+            
+            while(inflight.size() > 0) {
+                Packet packet = inflight.remove(0);
+                packet.getSource().transmitResult(time, packet, success);
+                if (success && packet.getSlotsNeededToCompletePacketTransmission() == 0) {
+                	packet.resetPacketTransmission();
+                	packet.getDestination().receive(time, packet, packetDrop);
+                }
+            }
+        }
+    	return queueSizes;
+    }
 
     /**
      * returns the node associated with the given vertex

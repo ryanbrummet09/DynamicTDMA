@@ -7,7 +7,7 @@ import workload.workloadFoundationCode.Workload;
 
 import java.io.IOException;
 
-import protocols.SimpleCSMAFactory;
+import protocols.factories.SimpleCSMAFactory;
 
 /**
  * Created by ochipara on 2/8/16.

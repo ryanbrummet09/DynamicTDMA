@@ -127,4 +127,58 @@ public class Workload {
             System.out.println(flow);
         }
     }
+    
+    /**
+     * calculates and returns the length of the hyper period of this workload where only the periodic
+     * flows of this workload are used to determine the hyper period
+     * @return
+     */
+    public int getLengthOfHyperPeriod() {
+    	ArrayList<Integer> deadlines = new ArrayList<Integer>();
+    	for(int i = 0; i < flows.size(); i++) {
+    		if (flows.get(i) instanceof PeriodicFlow) {
+    			deadlines.add(((PeriodicFlow) flows.get(i)).deadline);
+    		}
+    	}
+    	int hyperPeriodLength = 0;
+    	for(int i = 0; i < flows.size() - 1; i++) {
+    		if(i == 0) {
+    			hyperPeriodLength = lcm(deadlines.get(i),deadlines.get(i + 1));
+    		} else {
+    			hyperPeriodLength = lcm(hyperPeriodLength, deadlines.get(i + 1));
+    		}
+    	}
+    	return hyperPeriodLength;
+    }
+    
+    /**
+     * finds the greatest common divisor of a and b
+     * @param a
+     * @param b
+     * @return
+     */
+    private static int gcd(int a, int b) {
+        while (b != 0) {
+            int temp = b;
+            b = a % b;
+            a = temp;
+        }
+        return a;
+    }
+    
+    /**
+     * finds the least common multiple of a and b
+     * @param a
+     * @param b
+     * @return
+     */
+    private static int lcm(int a, int b) {
+    	if (a < 0) {
+    		a = -a;
+    	}
+    	if (b < 0) {
+    		b = -b;
+    	}
+    	return (a * b) / gcd(a,b);
+    }
 }

@@ -10,7 +10,7 @@ import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 
-import protocols.SimpleCSMAFactory;
+import protocols.factories.SimpleCSMAFactory;
 
 /**
  * Created by ochipara on 2/12/16.

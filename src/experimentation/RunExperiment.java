@@ -1,8 +1,8 @@
 package experimentation;
 import java.io.IOException;
 
-import protocols.ExponentialBackoffCSMAFactory;
-import protocols.SimpleCSMAFactory;
+import protocols.factories.ExponentialBackoffCSMAFactory;
+import protocols.factories.SimpleCSMAFactory;
 import simulator.Simulator;
 import simulator.statistics.TableStatistics;
 import topology.exampleTopologies.AbstractExampleTopology;
